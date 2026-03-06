@@ -2,9 +2,11 @@ package com.alan.agendadortarefas.controller;
 
 import com.alan.agendadortarefas.business.TarefasService;
 import com.alan.agendadortarefas.business.dto.TarefasDTO;
+import com.alan.agendadortarefas.infrastructure.enums.StatusNotificacaoEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,8 +32,25 @@ public class TarefasController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TarefasDTO>> buscaTarefasPorEmail(@RequestHeader("Authorization") String token){
+    public ResponseEntity<List<TarefasDTO>> buscaTarefasPorEmail(@RequestHeader("Authorization") String token) {
         List<TarefasDTO> tarefas = tarefasService.buscarTarefasPorEmail(token);
         return ResponseEntity.ok(tarefas);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deletaPorId(@RequestParam("id") String id) {
+        tarefasService.deletaTarefaPorID(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping
+    public ResponseEntity<TarefasDTO> alteraStatusDeNotificacao(@RequestParam("status") StatusNotificacaoEnum status,
+                                                                @RequestParam("id") String id) {
+        return ResponseEntity.ok(tarefasService.alteraStatus(status, id));
+    }
+
+    @PutMapping
+    public ResponseEntity<TarefasDTO> updateTarefas(@RequestBody TarefasDTO dto, @RequestParam("id") String id) {
+        return ResponseEntity.ok(tarefasService.updateTarefas(dto, id));
     }
 }
