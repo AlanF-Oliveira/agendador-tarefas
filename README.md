@@ -1,6 +1,6 @@
 # 📋 Agendador de Tarefas
 
-API REST para gerenciamento e agendamento de tarefas pessoais, desenvolvida com **Java 17** e **Spring Boot 4**. O serviço permite criar, consultar, atualizar e deletar tarefas, com autenticação via **JWT** e integração com um microsserviço externo de usuários via **OpenFeign**.
+API REST para gerenciamento e agendamento de tarefas pessoais, desenvolvida com **Java 17** e **Spring Boot 4**. O serviço permite criar, consultar, atualizar e deletar tarefas, com autenticação via **JWT** e integração com o microsserviço [usuario](https://github.com/AlanF-Oliveira/usuario) via **OpenFeign**.
 
 ---
 
@@ -62,6 +62,8 @@ A API utiliza autenticação **stateless** baseada em **JWT**. Todas as requisi�
 ```
 Authorization: Bearer <seu_token_jwt>
 ```
+
+> 💡 O token JWT é gerado pelo microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** no endpoint `POST /usuario/login`. Obtenha o token lá antes de consumir esta API.
 
 O token é validado pelo `JwtRequestFilter` antes de cada requisição. O e-mail do usuário é extraído diretamente do token para associar as tarefas ao usuário correto.
 
@@ -152,9 +154,29 @@ Remove uma tarefa pelo seu ID.
 
 ---
 
-## 🔗 Integração com Microsserviço de Usuários
+## 🔗 Integração com o Microsserviço de Usuários
 
-Este serviço se comunica com um microsserviço externo de usuários via **OpenFeign**:
+Este serviço depende do microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** para funcionar. A integração acontece em dois momentos:
+
+### 1. Obtenção do Token JWT
+
+O token deve ser gerado pelo serviço `usuario` antes de qualquer chamada a esta API:
+
+```
+POST http://localhost:8081/usuario/login
+Content-Type: application/json
+
+{
+  "email": "alan@email.com",
+  "senha": "minhasenha"
+}
+```
+
+Resposta: `Bearer eyJhbGciOiJIUzI1NiJ9...`
+
+### 2. Validação do Usuário por Token
+
+A cada requisição autenticada, o `agendador-tarefas` consulta o serviço `usuario` para validar o token e buscar os dados do usuário via **OpenFeign**:
 
 ```java
 @FeignClient(name = "usuario", url = "${usuario.url}")
@@ -164,6 +186,8 @@ public interface UsuarioClient {
                                     @RequestHeader("Authorization") String token);
 }
 ```
+
+> 📌 O endpoint consumido é `GET /usuario?email={email}` do serviço [usuario](https://github.com/AlanF-Oliveira/usuario).
 
 Configure a URL do serviço de usuários no `application.properties`:
 ```properties
@@ -178,7 +202,7 @@ usuario.url=http://localhost:8081
 
 - Java 17+
 - MongoDB rodando localmente ou em um container
-- Serviço de usuários disponível (para autenticação)
+- Microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** rodando (necessário para autenticação)
 
 ### Configuração
 
@@ -211,6 +235,15 @@ cd agendador-tarefas
 ```bash
 ./gradlew test
 ```
+
+---
+
+## 🧩 Microsserviços Relacionados
+
+| Serviço | Repositório | Responsabilidade |
+|---|---|---|
+| **usuario** | [AlanF-Oliveira/usuario](https://github.com/AlanF-Oliveira/usuario) | Cadastro, login e gestão de usuários |
+| **agendador-tarefas** | [AlanF-Oliveira/agendador-tarefas](https://github.com/AlanF-Oliveira/agendador-tarefas) | Agendamento e gestão de tarefas |
 
 ---
 
