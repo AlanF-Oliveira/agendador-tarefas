@@ -1,6 +1,7 @@
 package com.alan.agendadortarefas.infrastructure.repository;
 
 import com.alan.agendadortarefas.infrastructure.entity.TarefasEntity;
+import com.alan.agendadortarefas.infrastructure.enums.StatusNotificacaoEnum;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,7 +11,10 @@ import java.util.Optional;
 
 @Repository
 public interface TarefasRepository extends MongoRepository<TarefasEntity, String> {
-    List<TarefasEntity> findByDataEventoBetween(LocalDateTime dataInicial, LocalDateTime dataFinal);
+    List<TarefasEntity> findByDataEventoBetweenAndStatusNotificacaoEnum(LocalDateTime dataInicial,
+                                                                        LocalDateTime dataFinal,
+                                                                        StatusNotificacaoEnum status) ;
+
     List<TarefasEntity> findByEmailUsuario(String email);
 
 }
