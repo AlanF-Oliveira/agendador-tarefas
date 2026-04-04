@@ -1,22 +1,26 @@
 # 📋 Agendador de Tarefas
 
-API REST para gerenciamento e agendamento de tarefas pessoais, desenvolvida com **Java 17** e **Spring Boot 4**. O serviço permite criar, consultar, atualizar e deletar tarefas, com autenticação via **JWT** e integração com o microsserviço [usuario](https://github.com/AlanF-Oliveira/usuario) via **OpenFeign**.
+API REST para gerenciamento e agendamento de tarefas pessoais. Permite criar, consultar, atualizar e deletar tarefas, com autenticação via **JWT** e integração com o microsserviço de usuários via **OpenFeign**.
+
+> Este microsserviço faz parte de um ecossistema maior. O ponto de entrada recomendado para o frontend é o **[BFF Agendador de Tarefas](https://github.com/AlanF-Oliveira/bff-agendador-tarefas)**.
 
 ---
 
-## 🚀 Tecnologias Utilizadas
+## 🚀 Tecnologias
 
-| Tecnologia | Descrição |
-|---|---|
-| Java 17 | Linguagem principal |
-| Spring Boot 4.0.3 | Framework principal |
-| Spring Data MongoDB | Persistência de dados |
-| Spring Security | Autenticação e autorização |
-| Spring Cloud OpenFeign | Comunicação com microsserviços |
-| JWT (jjwt 0.13.0) | Geração e validação de tokens |
-| MapStruct 1.5.3 | Mapeamento entre DTOs e Entidades |
-| Lombok | Redução de boilerplate |
-| Gradle | Gerenciamento de build |
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| Java | 17 | Linguagem principal |
+| Spring Boot | 4.0.3 | Framework base |
+| Spring Data MongoDB | — | Persistência de dados |
+| MongoDB | — | Banco de dados NoSQL |
+| Spring Security | — | Autenticação e autorização |
+| Spring Cloud OpenFeign | 2025.1.0 | Comunicação com o microsserviço usuario |
+| JWT (jjwt) | 0.13.0 | Validação de tokens |
+| MapStruct | 1.5.3 | Mapeamento DTO ↔ Entity |
+| Lombok | — | Redução de boilerplate |
+| Gradle | — | Build |
+| Docker | — | Containerização |
 
 ---
 
@@ -24,48 +28,116 @@ API REST para gerenciamento e agendamento de tarefas pessoais, desenvolvida com 
 
 ```
 src/main/java/com/alan/agendadortarefas/
-├── AgendadorTarefasApplication.java       # Classe principal
+├── AgendadorTarefasApplication.java
 ├── controller/
-│   └── TarefasController.java             # Endpoints REST
+│   └── TarefasController.java
 ├── business/
-│   ├── TarefasService.java                # Regras de negócio
+│   ├── TarefasService.java
 │   ├── dto/
-│   │   ├── TarefasDTO.java                # DTO de tarefas
-│   │   └── UsuarioDTO.java                # DTO de usuários
+│   │   ├── TarefasDTO.java
+│   │   └── UsuarioDTO.java
 │   └── mapper/
-│       ├── TarefasConverter.java          # Mapper DTO <-> Entity
-│       └── TarefaUpdateConverter.java     # Mapper para atualização parcial
+│       ├── TarefasConverter.java
+│       └── TarefaUpdateConverter.java
 └── infrastructure/
     ├── client/
-    │   └── UsuarioClient.java             # Feign Client para serviço de usuários
+    │   └── UsuarioClient.java
     ├── entity/
-    │   └── TarefasEntity.java             # Entidade MongoDB
+    │   └── TarefasEntity.java
     ├── enums/
-    │   └── StatusNotificacaoEnum.java     # Status da notificação
+    │   └── StatusNotificacaoEnum.java
     ├── exceptions/
-    │   └── ResourceNotFoundException.java # Exceção customizada
+    │   └── ResourceNotFoundException.java
     ├── repository/
-    │   └── TarefasRepository.java         # Repositório MongoDB
+    │   └── TarefasRepository.java
     └── security/
-        ├── JwtUtil.java                   # Utilitários JWT
-        ├── JwtRequestFilter.java          # Filtro de autenticação JWT
-        ├── SecurityConfig.java            # Configuração do Spring Security
-        └── UserDetailsServiceImpl.java    # Carregamento de detalhes do usuário
+        ├── JwtUtil.java
+        ├── JwtRequestFilter.java
+        ├── SecurityConfig.java
+        └── UserDetailsServiceImpl.java
+```
+
+---
+
+## 🐳 Executando com Docker (recomendado)
+
+> Para subir todo o ecossistema de uma vez (BFF + todos os microsserviços + bancos), use o `docker-compose` do repositório **[bff-agendador-tarefas](https://github.com/AlanF-Oliveira/bff-agendador-tarefas)**.
+
+Para rodar apenas este serviço isoladamente:
+
+```bash
+git clone https://github.com/AlanF-Oliveira/agendador-tarefas.git
+cd agendador-tarefas
+docker build -t agendador-tarefas .
+docker run -p 8081:8081 \
+  -e SPRING_DATA_MONGODB_URI=mongodb://host.docker.internal:27017/db_agendador \
+  -e USUARIO_URL=http://host.docker.internal:8080 \
+  agendador-tarefas
+```
+
+### Serviço e porta
+
+| Serviço | Porta |
+|---|---|
+| `agendador-tarefas` | `8081` |
+
+---
+
+## 🔧 Dockerfile
+
+Build multi-stage com Gradle:
+
+```dockerfile
+# Stage 1 — build
+FROM gradle:8.14-jdk17 AS build
+WORKDIR /app
+COPY . .
+RUN gradle build --no-daemon
+
+# Stage 2 — runtime
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar /app/agendador_tarefas.jar
+EXPOSE 8083
+CMD ["java", "-jar", "/app/agendador_tarefas.jar"]
+```
+
+---
+
+## ▶️ Executando sem Docker
+
+### Pré-requisitos
+
+- Java 17+
+- MongoDB rodando localmente
+- Microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** rodando (necessário para validação do JWT)
+
+### Configuração
+
+Edite o `src/main/resources/application.properties`:
+
+```properties
+spring.data.mongodb.uri=mongodb://localhost:27017/db_agendador
+usuario.url=http://localhost:8080
+```
+
+### Executando
+
+```bash
+./gradlew bootRun
 ```
 
 ---
 
 ## 🔐 Autenticação
 
-A API utiliza autenticação **stateless** baseada em **JWT**. Todas as requisições devem incluir o token no header:
+Todas as requisições exigem um token JWT gerado pelo microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)**:
 
 ```
-Authorization: Bearer <seu_token_jwt>
+Authorization: Bearer <token>
 ```
 
-> 💡 O token JWT é gerado pelo microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** no endpoint `POST /usuario/login`. Obtenha o token lá antes de consumir esta API.
-
-O token é validado pelo `JwtRequestFilter` antes de cada requisição. O e-mail do usuário é extraído diretamente do token para associar as tarefas ao usuário correto.
+O e-mail do usuário é extraído diretamente do token para associar as tarefas ao dono correto.
 
 ---
 
@@ -77,63 +149,35 @@ Base URL: `/tarefas`
 |---|---|---|
 | `POST` | `/tarefas` | Cria uma nova tarefa |
 | `GET` | `/tarefas` | Lista todas as tarefas do usuário autenticado |
-| `GET` | `/tarefas/eventos` | Busca tarefas agendadas em um período |
-| `PUT` | `/tarefas` | Atualiza uma tarefa existente |
-| `PATCH` | `/tarefas` | Altera o status de notificação de uma tarefa |
-| `DELETE` | `/tarefas` | Deleta uma tarefa por ID |
+| `GET` | `/tarefas/eventos` | Busca tarefas em um intervalo de datas |
+| `PUT` | `/tarefas?id={id}` | Atualiza uma tarefa |
+| `PATCH` | `/tarefas?id={id}&status={status}` | Altera o status de notificação |
+| `DELETE` | `/tarefas?id={id}` | Remove uma tarefa |
 
-### Detalhamento dos Endpoints
+**Status de notificação disponíveis:** `PENDENTE` · `NOTIFICADO` · `CANCELADO`
 
-#### `POST /tarefas`
-Cria uma nova tarefa para o usuário autenticado.
+### Exemplo — Criar tarefa
 
-**Header:** `Authorization: Bearer <token>`
-
-**Body:**
 ```json
+// Request — POST /tarefas
+// Header: Authorization: Bearer <token>
 {
   "nomeTarefa": "Reunião de equipe",
   "descricao": "Discutir metas do trimestre",
   "dataEvento": "25-03-2026 14:00:00"
 }
-```
 
-**Resposta:**
-```json
+// Response
 {
   "id": "abc123",
   "nomeTarefa": "Reunião de equipe",
   "descricao": "Discutir metas do trimestre",
   "dataCriacao": "07-03-2026 10:00:00",
   "dataEvento": "25-03-2026 14:00:00",
-  "emailUsuario": "usuario@email.com",
-  "dataAlteracao": null,
+  "emailUsuario": "alan@email.com",
   "statusNotificacaoEnum": "PENDENTE"
 }
 ```
-
-#### `GET /tarefas`
-Lista todas as tarefas do usuário autenticado.
-
-**Header:** `Authorization: Bearer <token>`
-
-#### `GET /tarefas/eventos`
-Busca tarefas agendadas dentro de um intervalo de datas.
-
-**Query Params:**
-- `dataInicial` (ISO DateTime): ex. `2026-03-01T00:00:00`
-- `dataFinal` (ISO DateTime): ex. `2026-03-31T23:59:59`
-
-#### `PUT /tarefas?id={id}`
-Atualiza os dados de uma tarefa existente.
-
-#### `PATCH /tarefas?id={id}&status={status}`
-Altera o status de notificação de uma tarefa.
-
-**Status disponíveis:** `PENDENTE`, `NOTIFICADO`, `CANCELADO`
-
-#### `DELETE /tarefas?id={id}`
-Remove uma tarefa pelo seu ID.
 
 ---
 
@@ -148,35 +192,15 @@ Remove uma tarefa pelo seu ID.
 | `descricao` | String | Descrição detalhada |
 | `dataCriacao` | LocalDateTime | Data de criação automática |
 | `dataEvento` | LocalDateTime | Data/hora do evento agendado |
-| `emailUsuario` | String | E-mail do dono da tarefa |
+| `emailUsuario` | String | E-mail do dono da tarefa (extraído do JWT) |
 | `dataAlteracao` | LocalDateTime | Data da última alteração |
-| `statusNotificacaoEnum` | Enum | Status: `PENDENTE`, `NOTIFICADO`, `CANCELADO` |
+| `statusNotificacaoEnum` | Enum | `PENDENTE`, `NOTIFICADO`, `CANCELADO` |
 
 ---
 
-## 🔗 Integração com o Microsserviço de Usuários
+## 🔗 Integração com o microsserviço Usuario
 
-Este serviço depende do microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** para funcionar. A integração acontece em dois momentos:
-
-### 1. Obtenção do Token JWT
-
-O token deve ser gerado pelo serviço `usuario` antes de qualquer chamada a esta API:
-
-```
-POST http://localhost:8081/usuario/login
-Content-Type: application/json
-
-{
-  "email": "alan@email.com",
-  "senha": "minhasenha"
-}
-```
-
-Resposta: `Bearer eyJhbGciOiJIUzI1NiJ9...`
-
-### 2. Validação do Usuário por Token
-
-A cada requisição autenticada, o `agendador-tarefas` consulta o serviço `usuario` para validar o token e buscar os dados do usuário via **OpenFeign**:
+A cada requisição autenticada, este serviço consulta o **[usuario](https://github.com/AlanF-Oliveira/usuario)** via OpenFeign para validar o token e recuperar os dados do usuário:
 
 ```java
 @FeignClient(name = "usuario", url = "${usuario.url}")
@@ -187,50 +211,29 @@ public interface UsuarioClient {
 }
 ```
 
-> 📌 O endpoint consumido é `GET /usuario?email={email}` do serviço [usuario](https://github.com/AlanF-Oliveira/usuario).
+---
 
-Configure a URL do serviço de usuários no `application.properties`:
-```properties
-usuario.url=http://localhost:8081
+## 🧩 Microsserviços Relacionados
+
+| Serviço | Repositório | Papel |
+|---|---|---|
+| **BFF** | [bff-agendador-tarefas](https://github.com/AlanF-Oliveira/bff-agendador-tarefas) | Ponto de entrada — orquestra todas as chamadas |
+| **usuario** | [usuario](https://github.com/AlanF-Oliveira/usuario) | Fornece autenticação JWT |
+| **notificacao** | [notificacao](https://github.com/AlanF-Oliveira/notificacao) | Envia notificações sobre tarefas agendadas |
+
+---
+
+## 📖 Documentação da API (Swagger)
+
+Com a aplicação rodando, acesse:
+
+```
+http://localhost:8081/swagger-ui.html
 ```
 
 ---
 
-## ⚙️ Como Executar
-
-### Pré-requisitos
-
-- Java 17+
-- MongoDB rodando localmente ou em um container
-- Microsserviço **[usuario](https://github.com/AlanF-Oliveira/usuario)** rodando (necessário para autenticação)
-
-### Configuração
-
-Crie/edite o arquivo `src/main/resources/application.properties`:
-
-```properties
-spring.data.mongodb.uri=mongodb://localhost:27017/agendador-tarefas
-usuario.url=http://localhost:8081
-```
-
-### Rodando com Gradle
-
-```bash
-# Clonar o repositório
-git clone https://github.com/AlanF-Oliveira/agendador-tarefas.git
-cd agendador-tarefas
-
-# Executar
-./gradlew bootRun
-```
-
-### Build
-
-```bash
-./gradlew build
-```
-
-### Testes
+## 🧪 Testes
 
 ```bash
 ./gradlew test
@@ -238,15 +241,6 @@ cd agendador-tarefas
 
 ---
 
-## 🧩 Microsserviços Relacionados
-
-| Serviço | Repositório | Responsabilidade |
-|---|---|---|
-| **usuario** | [AlanF-Oliveira/usuario](https://github.com/AlanF-Oliveira/usuario) | Cadastro, login e gestão de usuários |
-| **agendador-tarefas** | [AlanF-Oliveira/agendador-tarefas](https://github.com/AlanF-Oliveira/agendador-tarefas) | Agendamento e gestão de tarefas |
-
----
-
 ## 👤 Autor
 
-Desenvolvido por **[AlanF-Oliveira](https://github.com/AlanF-Oliveira)**
+**Alan F. Oliveira** — [github.com/AlanF-Oliveira](https://github.com/AlanF-Oliveira)
