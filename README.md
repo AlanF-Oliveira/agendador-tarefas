@@ -233,14 +233,6 @@ http://localhost:8081/swagger-ui.html
 
 ---
 
-## 🧪 Testes
-
-```bash
-./gradlew test
-```
-
----
-
 ## 👤 Autor
 
-**Alan F. Oliveira** — [github.com/AlanF-Oliveira](https://github.com/AlanF-Oliveira)
+**Alan F. Oliveira** — [github.com/AlanF-Oliveira](https://github.com/AlanF-Oliveira)                                    
